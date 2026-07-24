@@ -21,7 +21,7 @@ import {
 } from "../utils";
 import { getIdByUri, getNameByUri, getPathByUri } from "../utils/UriUtils";
 import { Operation, compare } from "fast-json-patch";
-import { FormDefinitionResponseBeta, SlimCampaign } from "sailpoint-api-client";
+import { ConnectorRuleUpdateRequestBeta, FormDefinitionResponseBeta, SlimCampaign } from "sailpoint-api-client";
 
 export class ISCResourceProvider implements FileSystemProvider {
 	private _emitter = new vscode.EventEmitter<vscode.FileChangeEvent[]>();
@@ -47,14 +47,14 @@ export class ISCResourceProvider implements FileSystemProvider {
 		const tenantName = uri.authority;
 		const tenantInfo = await this.tenantService.getTenantByTenantName(tenantName)
 		const isReadOnly = tenantInfo && tenantInfo.readOnly
-		const isViewOnlyScript = resourcePath?.match(/\/cloud-rule-script\//) !== null;
+		const isViewOnlyCloudRule = /\/cloud-rules\/|\/cloud-rule-script\//.test(resourcePath ?? '');
 		const isFile = id !== "provisioning-policies" && id !== "schemas";
 		return {
 			type: (isFile ? FileType.File : FileType.Directory),
 			ctime: toTimestamp(data.created),
 			mtime: toTimestamp(data.modified),
 			size: convertToText(data).length,
-			permissions: id !== NEW_ID && (isReadOnly || isViewOnlyScript || resourcePath?.match("\/identities\/")) ? vscode.FilePermission.Readonly : undefined
+			permissions: id !== NEW_ID && (isReadOnly || isViewOnlyCloudRule || resourcePath?.match("\/identities\/")) ? vscode.FilePermission.Readonly : undefined
 		};
 	}
 	readDirectory(
@@ -122,7 +122,7 @@ export class ISCResourceProvider implements FileSystemProvider {
 				2,
 				0,
 				false,
-				null,
+				undefined,
 				true
 			);
 			if (response.data.length === 1) {
@@ -192,26 +192,22 @@ export class ISCResourceProvider implements FileSystemProvider {
 		} else {
 
 			if (resourcePath.match("cloud-rule-script")) {
-				// Cloud rule scripts are view-only; edits must be saved via the rule JSON editor.
+				// Cloud rule scripts are view-only; edits must be saved via Import config.
+				return;
+			}
+
+			if (resourcePath.match("cloud-rules")) {
+				// Cloud rules are view-only in the editor; use Import config to update rules.
 				return;
 			}
 
 			if (resourcePath.match("connector-rule-script")) {
 				const rule = await client.getConnectorRuleById(id)
-				rule.sourceCode.script = data
-				await client.updateConnectorRule(rule)
-			} else if (resourcePath.match("cloud-rules")) {
-				const cloudRuleService = CloudRuleService.getInstance(
-					tenantInfo?.id ?? "",
-					tenantName,
-					tenantInfo?.name ?? tenantName
-				);
-				const ruleData = JSON.parse(data);
-				const configObject = cloudRuleService.buildConfigObjectFromRuleData(ruleData, {
-					id,
-					name: getNameByUri(uri) ?? ruleData.name,
-				});
-				await cloudRuleService.importCloudRuleConfig(configObject);
+				await client.updateConnectorRule({
+					...rule,
+					sourceCode: { ...rule.sourceCode, script: data },
+					description: rule.description ?? undefined,
+				} as ConnectorRuleUpdateRequestBeta)
 			} else if (resourcePath.match("form-definitions")) {
 				// UI is pushing all data as a Patch. Doing the same for form definitions
 				const newData = JSON.parse(data) as FormDefinitionResponseBeta
