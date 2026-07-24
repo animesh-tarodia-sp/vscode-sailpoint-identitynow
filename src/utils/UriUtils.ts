@@ -214,6 +214,7 @@ const IDN_RESOURCE_TYPE_BY_KIND: Record<string, string> = {
     "identity-profile": "identity-profiles", role: "roles",
     "access-profile": "access-profiles", application: "source-apps",
     "identity-attribute": "identity-attributes",
+    "cloud-rule": "cloud-rules", "connector-rule": "connector-rules",
 };
 
 /**

@@ -38,7 +38,7 @@ export function groupKey(sourceNodeId: string, type: string): string {
 const NO_GROUP_TYPES = new Set(["public-identities-config"]);
 
 /** Node types that can be the root of their own dependency graph (mirrors DependencyServiceFactory on the extension side). */
-export const VIEWABLE_DEPENDENCY_TYPES = new Set(["identity-attribute", "transform", "source"]);
+export const VIEWABLE_DEPENDENCY_TYPES = new Set(["identity-attribute", "transform", "source", "cloud-rule"]);
 
 /**
  * Node types whose underlying ISC object can be opened in the editor (mirrors the tree items
@@ -47,7 +47,8 @@ export const VIEWABLE_DEPENDENCY_TYPES = new Set(["identity-attribute", "transfo
  */
 export const OPEN_RESOURCE_DEPENDENCY_TYPES = new Set([
   "source", "transform", "workflow", "identity-profile", "role", "dimension",
-  "access-profile", "application", "identity-attribute", "provisioning-policy"
+  "access-profile", "application", "identity-attribute", "provisioning-policy",
+  "cloud-rule", "connector-rule"
 ]);
 
 /**

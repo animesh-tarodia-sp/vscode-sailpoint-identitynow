@@ -1,26 +1,31 @@
 <script lang="ts">
   import { BaseEdge, useInternalNode, getStraightPath, type EdgeProps } from "@xyflow/svelte";
   import { getFloatingEdgeParams } from "./floatingEdgeParams";
+  import type { DependencyFlowNodeData } from "./grouping";
 
-  let { id, source, target }: EdgeProps = $props();
+  let { id, source, target, label }: EdgeProps = $props();
 
   const sourceNode = $derived(useInternalNode(source));
   const targetNode = $derived(useInternalNode(target));
 
-  // Ignores the sourceX/sourceY/targetX/targetY/sourcePosition/targetPosition props that xyflow
-  // derives from the (hidden, structurally-required) Handles: this edge always connects at the
-  // point on each node's border that actually faces the other node, so it looks correct under
-  // any layout (radial, tree, ...), not just the top-down "layered" one.
-  const path = $derived.by(() => {
+  const ruleEdgeLabel = $derived.by(() => {
+    if (!label || targetNode.current?.data?.kind !== "dependency") {
+      return undefined;
+    }
+    const type = (targetNode.current.data as DependencyFlowNodeData).node.type;
+    return type === "cloud-rule" || type === "connector-rule" ? label : undefined;
+  });
+
+  const layout = $derived.by(() => {
     if (!sourceNode.current || !targetNode.current) {
       return undefined;
     }
     const { sourceX, sourceY, targetX, targetY } = getFloatingEdgeParams(sourceNode.current, targetNode.current);
-    const [edgePath] = getStraightPath({ sourceX, sourceY, targetX, targetY });
-    return edgePath;
+    const [edgePath, labelX, labelY] = getStraightPath({ sourceX, sourceY, targetX, targetY });
+    return { edgePath, labelX, labelY };
   });
 </script>
 
-{#if path}
-  <BaseEdge {id} {path} />
+{#if layout}
+  <BaseEdge {id} path={layout.edgePath} label={ruleEdgeLabel} labelX={layout.labelX} labelY={layout.labelY} />
 {/if}

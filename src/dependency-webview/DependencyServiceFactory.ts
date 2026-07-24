@@ -1,4 +1,5 @@
 import { DependencyService } from "./DependencyService"
+import { CloudRuleDependencyService } from "./CloudRuleDependencyService"
 import { IdentityAttributeDependencyService } from "./IdentityAttributeDependencyService"
 import { SourceDependencyService } from "./SourceDependencyService"
 import { TransformDependencyService } from "./TransformDependencyService"
@@ -40,6 +41,16 @@ export class DependencyServiceFactory {
                 )
             case "source":
                 return new SourceDependencyService(
+                    this.tenantId,
+                    this.tenantName,
+                    this.tenantDisplayname,
+                    this.resourceType,
+                    this.resourceId,
+                    this.resourceName,
+                    this.label
+                )
+            case "cloud-rule":
+                return new CloudRuleDependencyService(
                     this.tenantId,
                     this.tenantName,
                     this.tenantDisplayname,

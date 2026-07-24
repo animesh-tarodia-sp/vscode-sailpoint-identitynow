@@ -1241,7 +1241,7 @@
         },
         {
           "command": "vscode-sailpoint-identitynow.dependencies.view",
-          "when": "view == vscode-sailpoint-identitynow.view && (viewItem == identity-attribute || viewItem == transform || viewItem =~ /source$/)",
+          "when": "view == vscode-sailpoint-identitynow.view && (viewItem == identity-attribute || viewItem == transform || viewItem == cloud-rule || viewItem =~ /source$/)",
           "group": "_@1"
         },
         {

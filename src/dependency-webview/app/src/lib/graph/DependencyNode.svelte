@@ -12,7 +12,12 @@
 <div class="dep-node" class:selected style="--accent: {style.color}">
   <Handle type="target" position={Position.Top} isConnectable={false} />
   <span class="chip" title={style.label}><Icon /></span>
-  <span class="label" title={data.node.label}>{data.node.label}</span>
+  <div class="text">
+    <span class="label" title={data.node.label}>{data.node.label}</span>
+    {#if (data.node.type === "cloud-rule" || data.node.type === "connector-rule") && data.node.attributes?.attachment}
+      <span class="sublabel" title={data.node.attributes.attachment}>{data.node.attributes.attachment}</span>
+    {/if}
+  </div>
   <Handle type="source" position={Position.Bottom} isConnectable={false} />
 </div>
 
@@ -48,10 +53,25 @@
     font-size: 11px;
   }
 
+  .text {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+  }
+
   .label {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+  }
+
+  .sublabel {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: 10px;
+    color: var(--vscode-descriptionForeground, rgba(204, 204, 204, 0.7));
   }
 
   /* Required by xyflow for edge bookkeeping, but FloatingEdge ignores their position, so they

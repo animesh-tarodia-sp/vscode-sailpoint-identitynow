@@ -1,7 +1,7 @@
-import { ExportPayloadV2025IncludeTypesV2025, SpConfigExportResultsBeta } from 'sailpoint-api-client';
+import { ConnectorRuleResponseV2025, ExportPayloadBetaIncludeTypesBeta, ExportPayloadV2025IncludeTypesV2025, ProvisioningPolicyDto, Source, SpConfigExportResultsBeta } from 'sailpoint-api-client';
 import { SimpleSPConfigExporter } from '../commands/spconfig-export/SimpleSPConfigExporter';
 import type { DependencyGraphData } from './app/src/services/Client';
-import { DependencyService } from './DependencyService';
+import { DependencyService, SOURCE_CLOUD_RULE_FIELDS } from './DependencyService';
 
 export class SourceDependencyService extends DependencyService {
 
@@ -35,18 +35,25 @@ export class SourceDependencyService extends DependencyService {
                 ExportPayloadV2025IncludeTypesV2025.IdentityProfile,
                 ExportPayloadV2025IncludeTypesV2025.Role,
                 ExportPayloadV2025IncludeTypesV2025.LifecycleState,
+                ExportPayloadBetaIncludeTypesBeta.Rule,
             ]
         )
 
-        const [data, accessProfileIds] = await Promise.all([
+        const [data, accessProfileIds, , source, connectorRules, provisioningPolicies] = await Promise.all([
             exporter.exportConfigWithProgression(),
             this.filterAccessProfile(),
-            this.filterApplication()
+            this.filterApplication(),
+            this.client.getSourceById(this.resourceId),
+            this.client.getConnectorRules(),
+            this.client.getProvisioningPolicies(this.resourceId),
         ]);
         this.filterTransform(data);
         this.filterIdentityProfile(data);
         this.filterRole(data, accessProfileIds);
         this.filterLifecycleState(data, accessProfileIds);
+        this.addSourceCloudRuleFields(source);
+        this.addConnectorRulesFromAttributes(source, connectorRules);
+        this.addProvisioningPolicyCloudRules(source, provisioningPolicies);
 
         return {
             rootId: DependencyService.rootId,
@@ -171,6 +178,79 @@ export class SourceDependencyService extends DependencyService {
                         noGroup: true
                     });
                 }
+
+                this.addCloudRulesFromTransform(
+                    attributeTransform.transformDefinition,
+                    attributeNodeId,
+                    "rule mapping"
+                );
+            }
+        }
+    }
+
+    private addSourceCloudRuleFields(source: Source): void {
+        for (const { key, label } of SOURCE_CLOUD_RULE_FIELDS) {
+            const ref = this.getSourceCloudRuleRef((source as any)[key]);
+            if (!ref) {
+                continue;
+            }
+            this.addRuleNode("cloud-rule", ref.id, ref.name, (source as any)[key], DependencyService.rootId, label);
+        }
+    }
+
+    private addConnectorRulesFromAttributes(source: Source, connectorRules: ConnectorRuleResponseV2025[]): void {
+        const knownNames = new Set(connectorRules.map(r => r.name).filter(Boolean) as string[]);
+        const attachments = this.collectConnectorRuleAttachments(source.connectorAttributes, knownNames);
+        for (const { ruleName, edgeLabel } of attachments) {
+            const rule = connectorRules.find(r => r.name === ruleName);
+            if (!rule?.id) {
+                continue;
+            }
+            const edgeIdSuffix = edgeLabel.replace(/[^a-zA-Z0-9]+/g, "_");
+            this.addRuleNode(
+                "connector-rule",
+                rule.id,
+                rule.name!,
+                rule,
+                DependencyService.rootId,
+                edgeLabel,
+                false,
+                { graphNodeId: `${rule.id}::${edgeIdSuffix}` }
+            );
+        }
+    }
+
+    private addProvisioningPolicyCloudRules(source: Source, policies: ProvisioningPolicyDto[]): void {
+        for (const policy of policies) {
+            const matchingFields = (policy.fields ?? []).filter((field: any) =>
+                this.collectReferencedCloudRuleRefs(field.transform).length > 0);
+            if (matchingFields.length === 0) {
+                continue;
+            }
+
+            const policyId = `${source.id}::${policy.name}`;
+            this.addNodeOnce({
+                id: policyId,
+                type: "provisioning-policy",
+                label: policy.usageType,
+                description: policy.description ?? undefined,
+                resourceId: policyId,
+                attributes: {
+                    usageType: policy.usageType
+                },
+                data: policy
+            });
+
+            this.edges.push({
+                id: `${DependencyService.rootId}-${policyId}`,
+                source: DependencyService.rootId,
+                target: policyId,
+                label: "provisioning policy"
+            });
+
+            for (const field of matchingFields) {
+                const attachment = `${policy.usageType} · ${field.name}`;
+                this.addCloudRulesFromTransform(field.transform, DependencyService.rootId, attachment, { noGroup: false });
             }
         }
     }

@@ -42,6 +42,8 @@ const TYPE_STYLES: Record<string, TypeStyle> = {
     "application": { color: "#9cdcfe", icon: ApplicationIcon, label: "Application" },
     "dimension": { color: "#c9a26d", icon: DimensionIcon, label: "Dimension" },
     "lifecycle-state": { color: "#6a9955", icon: LifecycleStateIcon, label: "Lifecycle State" },
+    "cloud-rule": { color: "#569cd6", icon: ResourceIcon, label: "Cloud Rule" },
+    "connector-rule": { color: "#dcdcaa", icon: ResourceIcon, label: "Connector Rule" },
 };
 
 export function getTypeStyle(type: string): TypeStyle {

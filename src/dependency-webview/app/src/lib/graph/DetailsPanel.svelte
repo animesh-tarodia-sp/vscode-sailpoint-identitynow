@@ -53,7 +53,7 @@
           {/if}
 
           {#each Object.entries(selected.node.attributes ?? {}) as [key, value] (key)}
-            <dt>{key}</dt>
+            <dt>{key === "attachment" ? "Attachment" : key}</dt>
             <dd>{value}</dd>
           {/each}
         </dl>
