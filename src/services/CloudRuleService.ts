@@ -79,14 +79,18 @@ export class CloudRuleService {
     }
 
     public async getCloudRule(lookup: CloudRuleLookup): Promise<SpConfigObjectBeta> {
+        const cached = this.findCachedConfigObject(lookup);
+        if (cached) {
+            return cached;
+        }
+        if (lookup.id) {
+            return await this.getCloudRuleById(lookup.id, lookup.name);
+        }
         if (lookup.name) {
             const byName = await this.getCloudRuleByName(lookup.name);
             if (byName) {
                 return byName;
             }
-        }
-        if (lookup.id) {
-            return await this.getCloudRuleById(lookup.id, lookup.name);
         }
         throw new Error('Cloud rule not found: id or name is required');
     }

@@ -193,12 +193,12 @@ export class ISCResourceProvider implements FileSystemProvider {
 
 			if (resourcePath.match("cloud-rule-script")) {
 				// Cloud rule scripts are view-only; edits must be saved via Import config.
-				return;
+				throw vscode.FileSystemError.NoPermissions(uri);
 			}
 
 			if (resourcePath.match("cloud-rules")) {
 				// Cloud rules are view-only in the editor; use Import config to update rules.
-				return;
+				throw vscode.FileSystemError.NoPermissions(uri);
 			}
 
 			if (resourcePath.match("connector-rule-script")) {
